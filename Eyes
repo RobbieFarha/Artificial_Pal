@@ -1,0 +1,61 @@
+import cv2
+
+# Initialize the two camera lenses
+cam0 = cv2.VideoCapture(0)
+cam1 = cv2.VideoCapture(1)
+
+# Set the resolution of the camera lenses
+cam0.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cam0.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+cam1.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cam1.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+# Set the initial night vision mode to False
+night_vision = False
+
+while True:
+    # Read the frames from the two cameras
+    ret0, frame0 = cam0.read()
+    ret1, frame1 = cam1.read()
+
+    # Check if night vision mode should be enabled
+    if night_vision:
+        cam0.set(cv2.CAP_PROP_NIGHT_MODE, True)
+        cam1.set(cv2.CAP_PROP_NIGHT_MODE, True)
+    else:
+        cam0.set(cv2.CAP_PROP_NIGHT_MODE, False)
+        cam1.set(cv2.CAP_PROP_NIGHT_MODE, False)
+
+    # Concatenate the frames horizontally
+    if ret0 and ret1:
+        frame_concat = cv2.hconcat([frame0, frame1])
+    elif ret0:
+        frame_concat = frame0
+    elif ret1:
+        frame_concat = frame1
+    else:
+        break
+
+    # Resize the concatenated frame to the desired size
+    frame_width = int(cam0.get(cv2.CAP_PROP_FRAME_WIDTH) + cam1.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(max(cam0.get(cv2.CAP_PROP_FRAME_HEIGHT), cam1.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    frame_concat = cv2.resize(frame_concat, (frame_width, frame_height))
+
+    # Display the concatenated frame
+    cv2.imshow('Camera', frame_concat)
+
+    # Wait for a key press
+    key = cv2.waitKey(1) & 0xFF
+
+    # Toggle night vision mode if the 'n' key is pressed
+    if key == ord('n'):
+        night_vision = not night_vision
+
+    # Exit the loop if the 'q' key is pressed
+    elif key == ord('q'):
+        break
+
+# Release the camera lenses and close the window
+cam0.release()
+cam1.release()
+cv2.destroyAllWindows()
