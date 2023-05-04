@@ -1,38 +1,46 @@
 import cv2
 
-# Initialize the two camera lenses
+# Initialize the left and right camera lenses
 left_eye = cv2.VideoCapture(0)
 right_eye = cv2.VideoCapture(1)
 
-# Set the resolution of the camera lenses
-left_eye.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-left_eye.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-right_eye.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-right_eye.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+# Set the frame size for both cameras
+left_eye.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+left_eye.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+right_eye.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+right_eye.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
-# Set the initial night vision mode to False
-night_vision = False
+left_fps = 60
+right_fps = 60
 
+# Set the corresponding time intervals
+left_interval = int(1000 / left_fps)
+right_interval = int(1000 / right_fps)
+
+# Set the video codec and output file names for both cameras
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
+left_output = cv2.VideoWriter('left_eye.avi', fourcc, left_fps_limit, (1920, 1080))
+right_output = cv2.VideoWriter('right_eye.avi', fourcc, right_fps_limit, (1920, 1080))
+
+# Start the infinite loop for capturing and processing frames from both cameras
 while True:
-    # Read the frames from the two cameras
-    ret0, frame0 = left_eye.read()
-    ret1, frame1 = right_eye.read()
+    # Read the frames from both cameras
+    ret_left, frame_left = left_eye.read()
+    ret_right, frame_right = right_eye.read()
 
-    # Check if night vision mode should be enabled
-    if night_vision:
-        left_eye.set(cv2.CAP_PROP_NIGHT_MODE, True)
-        right_eye.set(cv2.CAP_PROP_NIGHT_MODE, True)
-    else:
-        left_eye.set(cv2.CAP_PROP_NIGHT_MODE, False)
-        right_eye.set(cv2.CAP_PROP_NIGHT_MODE, False)
+    # Write the frames to the corresponding video files
+    if ret_left:
+        left_output.write(frame_left)
+    if ret_right:
+        right_output.write(frame_right)
 
     # Concatenate the frames horizontally
-    if ret0 and ret1:
-        frame_concat = cv2.hconcat([frame0, frame1])
-    elif ret0:
-        frame_concat = frame0
-    elif ret1:
-        frame_concat = frame1
+    if ret_left and ret_right:
+        frame_concat = cv2.hconcat([frame_left, frame_right])
+    elif ret_left:
+        frame_concat = frame_left
+    elif ret_right:
+        frame_concat = frame_right
     else:
         break
 
@@ -42,20 +50,16 @@ while True:
     frame_concat = cv2.resize(frame_concat, (frame_width, frame_height))
 
     # Display the concatenated frame
-    cv2.imshow('Camera', frame_concat)
+    cv2.imshow('Stereo Vision', frame_concat)
 
-    # Wait for a key press
-    key = cv2.waitKey(1) & 0xFF
-
-    # Toggle night vision mode if the 'n' key is pressed
-    if key == ord('n'):
-        night_vision = not night_vision
-
-    # Exit the loop if the 'q' key is pressed
-    elif key == ord('q'):
+    # Wait for a key press and exit the loop if the 'q' key is pressed
+    key = cv2.waitKey(max(left_time_interval, right_time_interval)) & 0xFF
+    if key == ord('q'):
         break
 
-# Release the camera lenses and close the window
+# Release the cameras, stop writing to the video files, and close the window
 left_eye.release()
 right_eye.release()
+left_output.release()
+right_output.release()
 cv2.destroyAllWindows()
